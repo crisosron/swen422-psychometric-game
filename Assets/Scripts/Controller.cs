@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using Random = UnityEngine.Random;
 
@@ -87,9 +88,9 @@ public class Controller : MonoBehaviour
             if (text.name.Equals("ResultText"))
             {
                 text.text = "Average Time: " + avg +
-                            "\nBest Time: " + min +
-                            "\nWorst Time: " + max +
-                            "\nFails: " + failed;
+                            "ms\nBest Time: " + min +
+                            "ms\nWorst Time: " + max +
+                            "ms\nFails: " + failed;
             }
         }
         
@@ -143,12 +144,31 @@ public class Controller : MonoBehaviour
         }
     }
 
+    public void Next()
+    {
+        if (attempts.Count >= 10)
+            ShowResults();
+        else
+            StartWaiting();
+    }
+
+    public void Quit()
+    {
+        SceneManager.LoadScene("MenuScene");
+    }
+
+    public void Restart()
+    {
+        attempts.Clear();
+        StartWaiting();
+    }
+
     void StartWaiting()
     {
         SetObjectEnabled(waitingObject);
 
         state = GameState.WAITING;
-        timer = Time.time + Random.Range(1f, 8f);
+        timer = Time.time + Random.Range(1f, 6f);
     }
 
     // Update is called once per frame
@@ -185,22 +205,6 @@ public class Controller : MonoBehaviour
             {
                 ShowIncorrect("Too fast! Wait until the screen turns blue/green before you press the corresponding button.");
             }
-        }
-        // Clicked screen - wait until the user clicks
-        else if (state == GameState.CLICKED)
-        {
-            if (Input.GetMouseButtonDown(1) || Input.GetMouseButtonDown(0))
-            {
-                if (attempts.Count >= 10)
-                    ShowResults();
-                else
-                    StartWaiting();
-            }
-        }
-        // Results screen
-        else if (state == GameState.RESULTS)
-        {
-            // TODO
         }
     }
 }
