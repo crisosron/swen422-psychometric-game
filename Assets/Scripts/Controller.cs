@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
 using Random = UnityEngine.Random;
@@ -9,7 +10,7 @@ public class Controller : MonoBehaviour
 {
     public enum GameState
     {
-        WAITING, CLICKING, CLICKED
+        WAITING, CLICKING, CLICKED, RESULTS
     }
     
     // Game objects to be enabled/disabled
@@ -18,6 +19,7 @@ public class Controller : MonoBehaviour
     public GameObject rightClickObject;
     public GameObject correctObject;
     public GameObject incorrectObject;
+    public GameObject resultsObject;
 
     private GameState state = GameState.WAITING;
     bool shouldLeftClick = false;
@@ -40,6 +42,7 @@ public class Controller : MonoBehaviour
         rightClickObject.SetActive(o == rightClickObject);
         correctObject.SetActive(o == correctObject);
         incorrectObject.SetActive(o == incorrectObject);
+        resultsObject.SetActive(o == resultsObject);
     }
 
     void ReadyToClick()
@@ -47,6 +50,49 @@ public class Controller : MonoBehaviour
         state = GameState.CLICKING;
         shouldLeftClick = Random.Range(0f, 1f) < 0.5;
         SetObjectEnabled(shouldLeftClick ? leftClickObject : rightClickObject);
+    }
+
+    void ShowResults()
+    {
+        state = GameState.RESULTS;
+        SetObjectEnabled(resultsObject);
+
+        int avg = 0;
+        int failed = 0;
+        int min = Int32.MaxValue;
+        int max = Int32.MinValue;
+
+        foreach (int i in attempts)
+        {
+            if (i == -1)
+            {
+                failed++;
+            }
+            else
+            {
+                if (i > max)
+                    max = i;
+                if (i < min)
+                    min = i;
+                avg += i;
+            }
+        }
+
+        avg /= attempts.Count - failed;
+        
+        Text[] texts = resultsObject.GetComponentsInChildren<Text>();
+        
+        foreach (Text text in texts )
+        {
+            if (text.name.Equals("ResultText"))
+            {
+                text.text = "Average Time: " + avg +
+                            "\nBest Time: " + min +
+                            "\nWorst Time: " + max +
+                            "\nFails: " + failed;
+            }
+        }
+        
     }
 
     // the user did something wrong, tell them what they did wrong.
@@ -67,7 +113,7 @@ public class Controller : MonoBehaviour
             }
             else if (text.name.Equals("AttemptText"))
             {
-                text.text = "Attempt: " + attempts.Count;
+                text.text = "Attempt: " + attempts.Count + "/10";
             }
         }
     }
@@ -92,9 +138,17 @@ public class Controller : MonoBehaviour
             }
             else if (text.name.Equals("AttemptText"))
             {
-                text.text = "Attempt: " + attempts.Count;
+                text.text = "Attempt: " + attempts.Count + "/10";
             }
         }
+    }
+
+    void StartWaiting()
+    {
+        SetObjectEnabled(waitingObject);
+
+        state = GameState.WAITING;
+        timer = Time.time + Random.Range(1f, 8f);
     }
 
     // Update is called once per frame
@@ -132,21 +186,21 @@ public class Controller : MonoBehaviour
                 ShowIncorrect("Too fast! Wait until the screen turns blue/green before you press the corresponding button.");
             }
         }
-        // Clicked screen - wait 2 seconds
+        // Clicked screen - wait until the user clicks
         else if (state == GameState.CLICKED)
         {
             if (Input.GetMouseButtonDown(1) || Input.GetMouseButtonDown(0))
             {
-                StartWaiting();
+                if (attempts.Count >= 10)
+                    ShowResults();
+                else
+                    StartWaiting();
             }
         }
-    }
-
-    void StartWaiting()
-    {
-        SetObjectEnabled(waitingObject);
-
-        state = GameState.WAITING;
-        timer = Time.time + Random.Range(1f, 8f);
+        // Results screen
+        else if (state == GameState.RESULTS)
+        {
+            // TODO
+        }
     }
 }
