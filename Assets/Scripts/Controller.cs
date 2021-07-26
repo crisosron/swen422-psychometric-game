@@ -1,9 +1,11 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Text;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.Networking;
 using UnityEngine.UI;
 using Random = UnityEngine.Random;
 
@@ -29,6 +31,8 @@ public class Controller : MonoBehaviour
     private List<int> attempts = new List<int>();
     
     float timer;
+
+    public const string SERVER_URI = "https://swen422-telemetry-server.herokuapp.com/user-entries/create";
 
     // Start is called before the first frame update
     void Start()
@@ -79,21 +83,46 @@ public class Controller : MonoBehaviour
             }
         }
 
-        avg /= attempts.Count - failed;
+        if (attempts.Count != failed)
+        {
+            avg /= attempts.Count - failed;
+            StartCoroutine(SendResults());
+        }
         
         Text[] texts = resultsObject.GetComponentsInChildren<Text>();
         
-        foreach (Text text in texts )
+        foreach (Text text in texts)
         {
             if (text.name.Equals("ResultText"))
             {
-                text.text = "Average Time: " + avg +
+                if (attempts.Count != failed){
+                    text.text = "Average Time: " + avg +
                             "ms\nBest Time: " + min +
                             "ms\nWorst Time: " + max +
                             "ms\nFails: " + failed;
+                }
+                else 
+                {
+                    text.text = "All attempts failed";
+                }
             }
         }
-        
+
+    }
+
+    // Send results results to companion telemetry web app
+    IEnumerator SendResults()
+    {
+        List<int> successfulAttempts = attempts.FindAll(attempt => attempt > -1);
+        string csvString = string.Join(", ", successfulAttempts);
+        string jsonString = "{ \"attempts\":\"" + csvString + "\" }";
+
+        UnityWebRequest req = new UnityWebRequest(SERVER_URI, "POST");
+        byte[] bodyRaw = Encoding.UTF8.GetBytes(jsonString);
+        req.uploadHandler = (UploadHandler) new UploadHandlerRaw(bodyRaw);
+        req.downloadHandler = (DownloadHandler) new DownloadHandlerBuffer();
+        req.SetRequestHeader("Content-Type", "application/json");
+        yield return req.SendWebRequest();
     }
 
     // the user did something wrong, tell them what they did wrong.
