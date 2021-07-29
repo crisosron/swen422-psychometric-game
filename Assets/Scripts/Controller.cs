@@ -54,7 +54,21 @@ public class Controller : MonoBehaviour
     {
         state = GameState.CLICKING;
         shouldLeftClick = Random.Range(0f, 1f) < 0.5;
-        SetObjectEnabled(shouldLeftClick ? leftClickObject : rightClickObject);
+        GameObject obj = shouldLeftClick ? leftClickObject : rightClickObject;
+
+        Image[] images = obj.GetComponentsInChildren<Image>();
+
+        foreach (Image img in images)
+        {
+            if (img.name.Equals("Colour"))
+            {
+                img.enabled = !Settings.isShapes;
+            } else if (img.name.Equals("Shape"))
+            {
+                img.enabled = Settings.isShapes;
+            }
+        }
+        SetObjectEnabled(obj);
     }
 
     void ShowResults()
@@ -217,14 +231,14 @@ public class Controller : MonoBehaviour
                 if (shouldLeftClick)
                     ShowCorrect();
                 else
-                    ShowIncorrect("Incorrect button! You are meant to right click when the screen turns green.");
+                    ShowIncorrect(Settings.isShapes ? "Incorrect button! You are meant to right click on the heart." : "Incorrect button! You are meant to right click when the screen turns green.");
             }
             else if (Input.GetMouseButtonDown(1))
             {
                 if (!shouldLeftClick)
                     ShowCorrect();
                 else
-                    ShowIncorrect("Incorrect button! You are meant to left click when the screen turns blue.");
+                    ShowIncorrect(Settings.isShapes ? "Incorrect button! You are meant to left click on the diamond." : "Incorrect button! You are meant to left click when the screen turns blue.");
             }
         }
         // Waiting - don't let the user press the button too early
@@ -232,7 +246,7 @@ public class Controller : MonoBehaviour
         {
             if (Input.GetMouseButtonDown(0) || Input.GetMouseButtonDown(1))
             {
-                ShowIncorrect("Too fast! Wait until the screen turns blue/green before you press the corresponding button.");
+                ShowIncorrect(Settings.isShapes ? "Too fast! Wait until the shape appears before you press the corresponding button." : "Too fast! Wait until the screen turns blue/green before you press the corresponding button.");
             }
         }
     }
