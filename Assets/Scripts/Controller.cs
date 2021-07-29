@@ -13,24 +13,38 @@ public class Controller : MonoBehaviour
 {
     public enum GameState
     {
-        WAITING, CLICKING, CLICKED, RESULTS
+        WAITING,
+        CLICKING,
+        CLICKED,
+        RESULTS
     }
-    
+
     // Game objects to be enabled/disabled
     public GameObject waitingObject;
-    public GameObject leftClickObject;
-    public GameObject rightClickObject;
-    public GameObject correctObject;
-    public GameObject incorrectObject;
+    public GameObject clickingObject;
+    public GameObject endRoundObject;
     public GameObject resultsObject;
 
+    // Objects to click on
+    public ObjectController red;
+    public ObjectController green;
+    public ObjectController alien;
+    public ObjectController coin;
+
     private GameState state = GameState.WAITING;
-    bool shouldLeftClick = false;
-    
-    // all your attempts. -1 = Failed
-    private List<int> attempts = new List<int>();
-    
-    float timer;
+
+    private Vector3 prevPosition;
+    private ObjectController objectToClick = null;
+
+    // all your attempts with the data collected
+    private int score = 0;
+    private List<DataPoint> attempts = new List<DataPoint>();
+
+    private float timer;
+    private float mouseMovedTime;
+    private float mouseEnteredTime;
+    private Vector3 mouseStartLocation;
+
 
     public const string SERVER_URI = "https://swen422-telemetry-server.herokuapp.com/user-entries/create";
 
@@ -43,32 +57,41 @@ public class Controller : MonoBehaviour
     void SetObjectEnabled(GameObject o)
     {
         waitingObject.SetActive(o == waitingObject);
-        leftClickObject.SetActive(o == leftClickObject);
-        rightClickObject.SetActive(o == rightClickObject);
-        correctObject.SetActive(o == correctObject);
-        incorrectObject.SetActive(o == incorrectObject);
+        clickingObject.SetActive(o == clickingObject);
+        endRoundObject.SetActive(o == endRoundObject);
         resultsObject.SetActive(o == resultsObject);
     }
 
     void ReadyToClick()
     {
         state = GameState.CLICKING;
-        shouldLeftClick = Random.Range(0f, 1f) < 0.5;
-        GameObject obj = shouldLeftClick ? leftClickObject : rightClickObject;
 
-        Image[] images = obj.GetComponentsInChildren<Image>();
+        // pick object at random
+        bool isLeft = Random.Range(0f, 1f) < 0.5;
 
-        foreach (Image img in images)
-        {
-            if (img.name.Equals("Colour"))
-            {
-                img.enabled = !Settings.isShapes;
-            } else if (img.name.Equals("Shape"))
-            {
-                img.enabled = Settings.isShapes;
-            }
-        }
-        SetObjectEnabled(obj);
+        mouseMovedTime = 0;
+        mouseEnteredTime = 0;
+        mouseStartLocation = prevPosition;
+
+        SetObjectEnabled(clickingObject);
+
+        red.gameObject.SetActive(false);
+        green.gameObject.SetActive(false);
+        alien.gameObject.SetActive(false);
+        coin.gameObject.SetActive(false);
+
+        if (isLeft)
+            if (Settings.isAbstract)
+                objectToClick = green;
+            else
+                objectToClick = alien;
+        else if (Settings.isAbstract)
+            objectToClick = red;
+        else
+            objectToClick = coin;
+
+        objectToClick.gameObject.SetActive(true);
+        objectToClick.Move();
     }
 
     void ShowResults()
@@ -76,60 +99,33 @@ public class Controller : MonoBehaviour
         state = GameState.RESULTS;
         SetObjectEnabled(resultsObject);
 
-        int avg = 0;
-        int failed = 0;
-        int min = Int32.MaxValue;
-        int max = Int32.MinValue;
+        StartCoroutine(SendResults());
 
-        foreach (int i in attempts)
-        {
-            if (i == -1)
-            {
-                failed++;
-            }
-            else
-            {
-                if (i > max)
-                    max = i;
-                if (i < min)
-                    min = i;
-                avg += i;
-            }
-        }
-
-        if (attempts.Count != failed)
-        {
-            avg /= attempts.Count - failed;
-            StartCoroutine(SendResults());
-        }
-        
         Text[] texts = resultsObject.GetComponentsInChildren<Text>();
-        
+
         foreach (Text text in texts)
         {
             if (text.name.Equals("ResultText"))
             {
-                if (attempts.Count != failed){
-                    text.text = "Average Time: " + avg +
-                            "ms\nBest Time: " + min +
-                            "ms\nWorst Time: " + max +
-                            "ms\nFails: " + failed;
-                }
-                else 
-                {
-                    text.text = "All attempts failed";
-                }
+                text.text = "Finished!\nYour final score: " + score;
             }
         }
-
     }
 
     // Send results results to companion telemetry web app
     IEnumerator SendResults()
     {
-        List<int> successfulAttempts = attempts.FindAll(attempt => attempt > -1);
-        string csvString = string.Join(", ", successfulAttempts);
+        List<string> json = new List<string>();
+
+        foreach (DataPoint dp in attempts)
+        {
+            json.Add(dp.toJSON());
+        }
+
+        string csvString = string.Join(", ", json);
         string jsonString = "{ \"attempts\":\"" + csvString + "\" }";
+        
+        Debug.Log(jsonString);
 
         UnityWebRequest req = new UnityWebRequest(SERVER_URI, "POST");
         byte[] bodyRaw = Encoding.UTF8.GetBytes(jsonString);
@@ -142,47 +138,47 @@ public class Controller : MonoBehaviour
     // the user did something wrong, tell them what they did wrong.
     void ShowIncorrect(string message)
     {
-        SetObjectEnabled(incorrectObject);
+        SetObjectEnabled(endRoundObject);
         state = GameState.CLICKED;
-        
-        attempts.Add(-1);
 
-        Text[] texts = incorrectObject.GetComponentsInChildren<Text>();
-        
-        foreach (Text text in texts )
+        Text[] texts = endRoundObject.GetComponentsInChildren<Text>();
+
+        DataPoint dp = new DataPoint(mouseStartLocation, objectToClick.transform.position, mouseMovedTime,
+            mouseEnteredTime, Time.time - timer, false);
+        attempts.Add(dp);
+
+        foreach (Text text in texts)
         {
-            if (text.name.Equals("MessageText"))
+            if (text.name.Equals("EndText"))
             {
-                text.text = message;
-            }
-            else if (text.name.Equals("AttemptText"))
-            {
-                text.text = "Attempt: " + attempts.Count + "/10";
+                text.text = message + "\nAttempt: " + attempts.Count + "/10";
             }
         }
     }
-    
+
     // Show that you got the correct button and your reaction time
     void ShowCorrect()
     {
-        SetObjectEnabled(correctObject);
+        SetObjectEnabled(endRoundObject);
         int reaction = (int) Math.Round(1000 * (Time.time - timer));
-        attempts.Add(reaction);
-        timer = Time.time;
+        int points = (int) (1000 * Math.Max(0, 2 - Time.time + timer));
+
 
         state = GameState.CLICKED;
-        
-        Text[] texts = correctObject.GetComponentsInChildren<Text>();
-        
-        foreach (Text text in texts )
+
+        score += points;
+        DataPoint dp = new DataPoint(mouseStartLocation, objectToClick.transform.position, mouseMovedTime,
+            mouseEnteredTime, Time.time - timer, true);
+        attempts.Add(dp);
+
+        Text[] texts = endRoundObject.GetComponentsInChildren<Text>();
+
+        foreach (Text text in texts)
         {
-            if (text.name.Equals("TimeText"))
+            if (text.name.Equals("EndText"))
             {
-                text.text = "Reaction Time: " + reaction + "ms";
-            }
-            else if (text.name.Equals("AttemptText"))
-            {
-                text.text = "Attempt: " + attempts.Count + "/10";
+                text.text = "You got it!\nTime Taken: " + reaction + "ms\nPoints Earned: " +
+                            points + "\nAttempt: " + attempts.Count + "/10";
             }
         }
     }
@@ -211,43 +207,65 @@ public class Controller : MonoBehaviour
         SetObjectEnabled(waitingObject);
 
         state = GameState.WAITING;
-        timer = Time.time + Random.Range(1f, 6f);
+        timer = Time.time + Random.Range(2f, 4f);
     }
 
     // Update is called once per frame
     void Update()
     {
-        // if the timer reaches the point where you 
-        if (Time.time >= timer && state == GameState.WAITING)
+        Vector3 mouseChange = prevPosition - Input.mousePosition;
+        // Waiting
+        if (state == GameState.WAITING)
         {
-            ReadyToClick();
-        }
-        
-        // Ready to click - show correct or incorrect screen based on what button you pressed.
-        if (state == GameState.CLICKING)
-        {
-            if (Input.GetMouseButtonDown(0))
+            // if the player moves their mouse then keep waiting
+            if (!mouseChange.Equals(new Vector3(0, 0, 0)))
             {
-                if (shouldLeftClick)
+                StartWaiting();
+            }
+
+            // Get ready
+            if (Time.time >= timer)
+            {
+                ReadyToClick();
+            }
+        }
+        else if (state == GameState.CLICKING)
+        {
+            if (!mouseChange.Equals(new Vector3(0, 0, 0)) && mouseMovedTime == 0)
+            {
+                mouseMovedTime = Time.time - timer;
+                
+            }
+
+            if (objectToClick.InsideBounds(Input.mousePosition) && mouseEnteredTime == 0)
+            {
+                mouseEnteredTime = Time.time - timer;
+
+                // when the user spawns inside the point
+                if (mouseMovedTime == 0) mouseMovedTime = mouseEnteredTime;
+            }
+
+
+            if (Input.GetMouseButtonDown(0) && objectToClick.InsideBounds(Input.mousePosition))
+            {
+                if (objectToClick.isLeftClick)
                     ShowCorrect();
                 else
-                    ShowIncorrect(Settings.isShapes ? "Incorrect button! You are meant to right click on the heart." : "Incorrect button! You are meant to right click when the screen turns green.");
+                    ShowIncorrect(Settings.isAbstract
+                        ? "Wrong button! You are supposed to left click the green circle."
+                        : "Wrong button! You are supposed to left click to shoot the alien!");
             }
-            else if (Input.GetMouseButtonDown(1))
+            else if (Input.GetMouseButtonDown(1) && objectToClick.InsideBounds(Input.mousePosition))
             {
-                if (!shouldLeftClick)
+                if (!objectToClick.isLeftClick)
                     ShowCorrect();
                 else
-                    ShowIncorrect(Settings.isShapes ? "Incorrect button! You are meant to left click on the diamond." : "Incorrect button! You are meant to left click when the screen turns blue.");
+                    ShowIncorrect(Settings.isAbstract
+                        ? "Wrong button! You are supposed to right click the red circle."
+                        : "Wrong button! You are supposed to right click to collect the coin!");
             }
         }
-        // Waiting - don't let the user press the button too early
-        else if (state == GameState.WAITING)
-        {
-            if (Input.GetMouseButtonDown(0) || Input.GetMouseButtonDown(1))
-            {
-                ShowIncorrect(Settings.isShapes ? "Too fast! Wait until the shape appears before you press the corresponding button." : "Too fast! Wait until the screen turns blue/green before you press the corresponding button.");
-            }
-        }
+
+        prevPosition = Input.mousePosition;
     }
 }

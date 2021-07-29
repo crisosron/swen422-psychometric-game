@@ -4,20 +4,20 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 public class MenuController : MonoBehaviour
 {
-    public GameObject shapeMode;
+    public GameObject imagesMode;
     public GameObject colourMode;
 
     public void Start()
     {
-        if(Settings.isShapes)
+        if(Settings.isAbstract)
         {
-            colourMode.SetActive(false);
-            shapeMode.SetActive(true);
+            colourMode.SetActive(true);
+            imagesMode.SetActive(false);
         }
         else
         {
-            shapeMode.SetActive(false);
-            colourMode.SetActive(true);
+            imagesMode.SetActive(true);
+            colourMode.SetActive(false);
         }
     }
     public void OnClick() {
@@ -28,7 +28,7 @@ public class MenuController : MonoBehaviour
     {
         if(Input.GetKeyDown("f9"))
         {
-            Settings.isShapes = !Settings.isShapes;
+            Settings.isAbstract = !Settings.isAbstract;
             Start();
         }
     }

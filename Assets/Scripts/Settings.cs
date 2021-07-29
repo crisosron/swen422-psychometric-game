@@ -4,5 +4,5 @@ using UnityEngine;
 
 public class Settings : MonoBehaviour
 {
-    public static bool isShapes = true;
+    public static bool isAbstract = true;
 }
