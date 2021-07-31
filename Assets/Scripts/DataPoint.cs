@@ -39,16 +39,16 @@ public class DataPoint
     public string toJSON()
     {
         return "{" +
-               "\"abstract-images\": " + Settings.isAbstract + "," +
-               "\"was-correct\": " + wasCorrect + "," +
-               "\"mouse-still-time\": " + mouseStillTime + "," +
-               "\"mouse-travel-time\": " + mouseTravelTime + "," +
-               "\"mouse-click-time\": " + mouseClickTime + "," +
-               "\"mouse-total-time\": " + totalTime + "," +
-               "\"start-pos-to-centre-distance\": " + distanceToCentre + "," +
-               "\"start-pos-to-point-distance\": " + distanceToPoint + "," +
-               "\"travel-velocity\": " + travelVelocity +
-               "}";
+               "\"abstract-images\": \"" + Settings.isAbstract + "\"," +
+               "\"was-correct\": \"" + wasCorrect + "\"," +
+               "\"mouse-still-time\": \"" + mouseStillTime + "\"," +
+               "\"mouse-travel-time\": \"" + mouseTravelTime + "\"," +
+               "\"mouse-click-time\": \"" + mouseClickTime + "\"," +
+               "\"mouse-total-time\": \"" + totalTime + "\"," +
+               "\"start-pos-to-centre-distance\": \"" + distanceToCentre + "\"," +
+               "\"start-pos-to-point-distance\": \"" + distanceToPoint + "\"," +
+               "\"travel-velocity\": \"" + travelVelocity +
+               "\"}";
     }
     
 }

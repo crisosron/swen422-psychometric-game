@@ -122,8 +122,8 @@ public class Controller : MonoBehaviour
             json.Add(dp.toJSON());
         }
 
-        string csvString = string.Join(", ", json);
-        string jsonString = "{ \"attempts\":\"" + csvString + "\" }";
+        string arrayString = string.Join(", ", json);
+        string jsonString = "{ \"attempts\": [" + arrayString + "] }";
         
         Debug.Log(jsonString);
 
