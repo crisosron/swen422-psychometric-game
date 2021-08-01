@@ -46,7 +46,11 @@ public class Controller : MonoBehaviour
     private Vector3 mouseStartLocation;
 
 
+    // Use this for prod
     public const string SERVER_URI = "https://swen422-telemetry-server.herokuapp.com/user-entries/create";
+
+    // Use this for dev
+    // public const string SERVER_URI = "http://localhost:5000/user-entries/create";
 
     // Start is called before the first frame update
     void Start()
