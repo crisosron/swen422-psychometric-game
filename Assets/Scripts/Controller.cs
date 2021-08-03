@@ -203,6 +203,7 @@ public class Controller : MonoBehaviour
     public void Restart()
     {
         attempts.Clear();
+        score = 0;
         StartWaiting();
     }
 
@@ -256,8 +257,8 @@ public class Controller : MonoBehaviour
                     ShowCorrect();
                 else
                     ShowIncorrect(Settings.isAbstract
-                        ? "Wrong button! You are supposed to left click the green circle."
-                        : "Wrong button! You are supposed to left click to shoot the alien!");
+                        ? "Wrong button! You are supposed to right click the red circle."
+                        : "Wrong button! You are supposed to right click to collect the coin!");
             }
             else if (Input.GetMouseButtonDown(1) && objectToClick.InsideBounds(Input.mousePosition))
             {
@@ -265,8 +266,8 @@ public class Controller : MonoBehaviour
                     ShowCorrect();
                 else
                     ShowIncorrect(Settings.isAbstract
-                        ? "Wrong button! You are supposed to right click the red circle."
-                        : "Wrong button! You are supposed to right click to collect the coin!");
+                            ? "Wrong button! You are supposed to left click the green circle."
+                            : "Wrong button! You are supposed to left click to shoot the alien!");
             }
         }
 
