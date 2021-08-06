@@ -103,7 +103,7 @@ public class Controller : MonoBehaviour
         state = GameState.RESULTS;
         SetObjectEnabled(resultsObject);
 
-        StartCoroutine(SendResults());
+        //StartCoroutine(SendResults());
 
         Text[] texts = resultsObject.GetComponentsInChildren<Text>();
 
@@ -117,7 +117,7 @@ public class Controller : MonoBehaviour
     }
 
     // Send results results to companion telemetry web app
-    IEnumerator SendResults()
+    /*IEnumerator SendResults()
     {
         List<string> json = new List<string>();
 
@@ -137,7 +137,7 @@ public class Controller : MonoBehaviour
         req.downloadHandler = (DownloadHandler) new DownloadHandlerBuffer();
         req.SetRequestHeader("Content-Type", "application/json");
         yield return req.SendWebRequest();
-    }
+    }*/
 
     // the user did something wrong, tell them what they did wrong.
     void ShowIncorrect(string message)
